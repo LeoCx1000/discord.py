@@ -1395,12 +1395,23 @@ class HTTPClient:
     def delete_guild(self, guild_id: Snowflake) -> Response[None]:
         return self.request(Route('DELETE', '/guilds/{guild_id}', guild_id=guild_id))
 
-    def create_guild(self, name: str, icon: Optional[str]) -> Response[guild.Guild]:
-        payload = {
-            'name': name,
-        }
-        if icon:
-            payload['icon'] = icon
+    def create_guild(self, **fields: Any) -> Response[guild.Guild]:
+        valid_keys = (
+            'name',
+            'region',
+            'icon',
+            'verification_level',
+            'default_message_notifications',
+            'explicit_content_filter',
+            'roles',
+            'channels',
+            'afk_channel_id',
+            'afk_timeout',
+            'system_channel_id',
+            'system_channel_flags',
+        )
+
+        payload = {k: v for k, v in fields.items() if k in valid_keys}
 
         return self.request(Route('POST', '/guilds'), json=payload)
 

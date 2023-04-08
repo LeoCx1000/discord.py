@@ -75,6 +75,7 @@ from .ui.view import View
 from .stage_instance import StageInstance
 from .threads import Thread
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
+from .new_guild import NewGuild
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -672,7 +673,6 @@ class Client:
                 aiohttp.ClientError,
                 asyncio.TimeoutError,
             ) as exc:
-
                 self.dispatch('disconnect')
                 if not reconnect:
                     await self.close()
@@ -2246,10 +2246,13 @@ class Client:
         data = await self.http.get_guild(guild_id, with_counts=with_counts)
         return Guild(data=data, state=self._connection)
 
+    # TODO: overload this.
     async def create_guild(
         self,
+        new_guild: NewGuild = MISSING,
+        /,
         *,
-        name: str,
+        name: str = MISSING,
         icon: bytes = MISSING,
         code: str = MISSING,
     ) -> Guild:
@@ -2291,15 +2294,23 @@ class Client:
             The guild created. This is not the same guild that is
             added to cache.
         """
-        if icon is not MISSING:
-            icon_base64 = utils._bytes_to_base64_data(icon)
+        if new_guild:
+            if name is not MISSING or icon is not MISSING or code is not MISSING:
+                raise TypeError(
+                    f'When passing a NewGuild, you cannot provide `name`, `icon` or `code`. Use the NewGuild constructor instead.'
+                )
+            payload = new_guild._to_payload()
+            data = await self.http.create_guild(**payload)
         else:
-            icon_base64 = None
+            if icon is not MISSING:
+                icon_base64 = utils._bytes_to_base64_data(icon)
+            else:
+                icon_base64 = None
 
-        if code:
-            data = await self.http.create_from_template(code, name, icon_base64)
-        else:
-            data = await self.http.create_guild(name, icon_base64)
+            if code:
+                data = await self.http.create_from_template(code, name, icon_base64)
+            else:
+                data = await self.http.create_guild(name=name, icon=icon_base64)
         return Guild(data=data, state=self._connection)
 
     async def fetch_stage_instance(self, channel_id: int, /) -> StageInstance:
