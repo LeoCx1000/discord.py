@@ -1411,7 +1411,7 @@ class HTTPClient:
             'system_channel_flags',
         )
 
-        payload = {k: v for k, v in fields.items() if k in valid_keys}
+        payload = {k: v for k, v in fields.items() if k in valid_keys and v is not None}
 
         return self.request(Route('POST', '/guilds'), json=payload)
 
