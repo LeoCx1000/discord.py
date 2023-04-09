@@ -75,7 +75,7 @@ from .ui.view import View
 from .stage_instance import StageInstance
 from .threads import Thread
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
-from .new_guild import NewGuild
+from .new_guild import NewGuild, NewTemplatedGuild
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -114,6 +114,8 @@ if TYPE_CHECKING:
     from .types.guild import Guild as GuildPayload
     from .voice_client import VoiceProtocol
     from .audit_logs import AuditLogEntry
+    from .enums import ContentFilter, NotificationLevel, VerificationLevel
+    from .flags import SystemChannelFlags
 
 
 # fmt: off
@@ -2246,16 +2248,42 @@ class Client:
         data = await self.http.get_guild(guild_id, with_counts=with_counts)
         return Guild(data=data, state=self._connection)
 
-    # TODO: overload this.
-    async def create_guild(
+    @overload
+    def create_guild(
         self,
-        new_guild: NewGuild = MISSING,
-        /,
         *,
-        name: str = MISSING,
+        name: str,
+        code: str,
         icon: bytes = MISSING,
+    ) -> NewTemplatedGuild:
+        ...
+
+    @overload
+    def create_guild(
+        self,
+        *,
+        name: str,
+        icon: bytes = MISSING,
+        afk_timeout: int = MISSING,
+        verification_level: VerificationLevel = MISSING,
+        notification_level: NotificationLevel = MISSING,
+        content_filter: ContentFilter = MISSING,
+        system_channel_flags: SystemChannelFlags = MISSING,
+    ) -> NewGuild:
+        ...
+
+    def create_guild(
+        self,
+        *,
+        name: str,
         code: str = MISSING,
-    ) -> Guild:
+        icon: bytes = MISSING,
+        afk_timeout: int = MISSING,
+        verification_level: VerificationLevel = MISSING,
+        notification_level: NotificationLevel = MISSING,
+        content_filter: ContentFilter = MISSING,
+        system_channel_flags: SystemChannelFlags = MISSING,
+    ) -> NewGuild | NewTemplatedGuild:
         """|coro|
 
         Creates a :class:`.Guild`.
@@ -2294,24 +2322,28 @@ class Client:
             The guild created. This is not the same guild that is
             added to cache.
         """
-        if new_guild:
-            if name is not MISSING or icon is not MISSING or code is not MISSING:
-                raise TypeError(
-                    f'When passing a NewGuild, you cannot provide `name`, `icon` or `code`. Use the NewGuild constructor instead.'
-                )
-            payload = new_guild._to_payload()
-            data = await self.http.create_guild(**payload)
-        else:
-            if icon is not MISSING:
-                icon_base64 = utils._bytes_to_base64_data(icon)
-            else:
-                icon_base64 = None
 
-            if code:
-                data = await self.http.create_from_template(code, name, icon_base64)
-            else:
-                data = await self.http.create_guild(name=name, icon=icon_base64)
-        return Guild(data=data, state=self._connection)
+        if code is not MISSING:
+            attrs = (afk_timeout, verification_level, notification_level, content_filter, system_channel_flags)
+            if any(attr is not MISSING for attr in attrs):
+                raise TypeError(f"When using the 'code' parameter, you can only provide 'name' and 'icon'")
+            return NewTemplatedGuild(name=name, icon=icon, code=code, state=self._connection)
+
+        def _none(obj: T) -> T | None:
+            if obj is MISSING:
+                return None
+            return obj
+
+        return NewGuild(
+            name=name,
+            icon=_none(icon),
+            afk_timeout=_none(afk_timeout),
+            verification_level=_none(verification_level),
+            notification_level=_none(notification_level),
+            content_filter=_none(content_filter),
+            system_channel_flags=_none(system_channel_flags),
+            state=self._connection,
+        )
 
     async def fetch_stage_instance(self, channel_id: int, /) -> StageInstance:
         """|coro|

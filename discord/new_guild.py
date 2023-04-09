@@ -19,11 +19,13 @@ from .permissions import PermissionOverwrite, Permissions
 from .utils import _bytes_to_base64_data
 from .channel import ForumTag
 from .partial_emoji import _EmojiTag, PartialEmoji
+from .state import ConnectionState
+from .guild import Guild
 
 if TYPE_CHECKING:
     from .message import EmojiInputType
 
-__all__ = ('NewGuild',)
+__all__ = ()
 
 
 class NewRole:
@@ -339,6 +341,7 @@ class NewForum(NewGuildChannel):
 class NewGuild:
     def __init__(
         self,
+        *,
         name: str,
         icon: Optional[bytes] = None,
         afk_timeout: Optional[int] = None,
@@ -346,6 +349,7 @@ class NewGuild:
         notification_level: Optional[NotificationLevel] = None,
         content_filter: Optional[ContentFilter] = None,
         system_channel_flags: Optional[SystemChannelFlags] = None,
+        state: ConnectionState,
     ) -> None:
         self.name = name
         self.icon = icon
@@ -360,6 +364,8 @@ class NewGuild:
 
         self.afk_channel_id: Optional[int] = None
         self.system_channel_id: Optional[int] = None
+
+        self._state = state
 
     @property
     def default_role(self):
@@ -550,3 +556,38 @@ class NewGuild:
                 payload['system_channel_id'] = self.system_channel_id
 
         return payload
+
+    async def _create_guild(self):
+        payload = self._to_payload()
+        data = await self._state.http.create_guild(**payload)
+        return Guild(data=data, state=self._state)
+
+    def __await__(self):
+        return self._create_guild().__await__()
+
+
+class NewTemplatedGuild:
+    def __init__(
+        self,
+        *,
+        name: str,
+        code: str,
+        icon: Optional[bytes] = None,
+        state: ConnectionState,
+    ):
+        self.name = name
+        self.icon = icon
+        self.code = code
+        self._state = state
+
+    async def _create_guild(self):
+        if self.icon is not None:
+            icon_b64 = _bytes_to_base64_data(self.icon)
+        else:
+            icon_b64 = None
+
+        data = await self._state.http.create_from_template(self.code, self.name, icon_b64)
+        return Guild(data=data, state=self._state)
+
+    def __await__(self):
+        return self._create_guild().__await__()
