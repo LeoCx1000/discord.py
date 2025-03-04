@@ -759,6 +759,15 @@ class Embed:
                 else:
                     result['timestamp'] = timestamp.replace(tzinfo=datetime.timezone.utc).isoformat()
 
+        try:
+            image = result.pop('image')
+        except KeyError:
+            pass
+        else:
+            if image:
+                image['flags'] = image['flags'].value
+                result['image'] = image
+
         # add in the non raw attribute ones
         if self.type:
             result['type'] = self.type
