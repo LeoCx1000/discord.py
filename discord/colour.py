@@ -460,15 +460,18 @@ class Colour:
 
     @classmethod
     def ash_theme(cls) -> Self:
-        """A factory method that returns a :class:`Colour` with a value of ``0x2E2E34``.
+        """A factory method that returns a :class:`Colour` with a value of ``0x323339``.
 
         This will appear transparent on Discord's ash theme.
 
-        .. colour:: #2E2E34
+        .. colour:: #323339
 
         .. versionadded:: 2.6
+
+        .. versionchanged:: 2.7
+            Updated colour from previous ``0x2E2E34`` to reflect discord theme changes.
         """
-        return cls(0x2E2E34)
+        return cls(0x323339)
 
     @classmethod
     def dark_theme(cls) -> Self:
@@ -534,14 +537,16 @@ class Colour:
 
     @classmethod
     def ash_embed(cls) -> Self:
-        """A factory method that returns a :class:`Colour` with a value of ``0x37373E``.
+        """A factory method that returns a :class:`Colour` with a value of ``0x393A41``.
 
-        .. colour:: #37373E
+        .. colour:: #393A41
 
         .. versionadded:: 2.6
 
+        .. versionchanged:: 2.7
+          Updated colour from previous ``0x37373E`` to reflect discord theme changes.
         """
-        return cls(0x37373E)
+        return cls(0x393A41)
 
     @classmethod
     def dark_embed(cls) -> Self:
